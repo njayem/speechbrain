@@ -476,7 +476,7 @@ def nll_loss(
     )
 
 # ADDED A NEW MODIFICATION: Focal Loss
-def focal_loss(inputs, targets, alpha=0.25, gamma=2.0, reduction='mean'):
+def focal_loss(inputs, targets, alpha=0.25, gamma=2.0, reduction='mean', length=None, label_smoothing=0.0, allowed_len_diff=3):
     """
     Compute the Focal Loss, which is designed to address class imbalance by 
     down-weighting well-classified examples, leading to a focus on hard, 
@@ -497,28 +497,38 @@ def focal_loss(inputs, targets, alpha=0.25, gamma=2.0, reduction='mean'):
     reduction : str, optional
         Specifies the reduction to apply to the output: 'mean', 'sum', or 'none', 
         by default 'mean'.
-    
+    length : torch.Tensor, optional
+        Length of each sequence for computing true error with a mask, by default None.
+    label_smoothing : float, optional
+        The amount of label smoothing, by default 0.0.
+    allowed_len_diff : int, optional
+        Allowed length difference before truncation, by default 3.
+
     Returns
     -------
     torch.Tensor
         The computed Focal Loss.
-        
-    Example
-    -------
-    >>> inputs = torch.randn(3, 5, requires_grad=True)
-    >>> targets = torch.tensor([1, 0, 4])
-    >>> loss = focal_loss(inputs, targets, alpha=0.25, gamma=2.0, reduction='mean')
     """
-    ce_loss = torch.nn.functional.cross_entropy(inputs, targets, reduction="none")
-    pt = torch.exp(-ce_loss)
-    focal_loss = alpha * (1-pt)**gamma * ce_loss
-    
-    if reduction == 'mean':
-        return torch.mean(focal_loss)
-    elif reduction == 'sum':
-        return torch.sum(focal_loss)
-    else:
+    if len(inputs.shape) == 3:
+        inputs, targets = truncate(inputs, targets, allowed_len_diff)
+        inputs = inputs.transpose(1, -1)
+
+    def focal_loss_fn(inputs, targets):
+        ce_loss = F.cross_entropy(inputs, targets, reduction="none")
+        pt = torch.exp(-ce_loss)
+        focal_loss = alpha * (1 - pt)**gamma * ce_loss
         return focal_loss
+
+    # Using compute_masked_loss function
+    loss = functools.partial(focal_loss_fn)
+    return compute_masked_loss(
+        loss,
+        inputs,
+        targets.long(),
+        length,
+        label_smoothing=label_smoothing,
+        reduction=reduction,
+    )
 
 
 def bce_loss(
