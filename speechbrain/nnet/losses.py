@@ -476,45 +476,48 @@ def nll_loss(
     )
 
 # ADDED A NEW MODIFICATION: Focal Loss
-def focal_loss(inputs, targets, alpha=0.25, gamma=2.0, reduction='mean', weight=None, length=None, label_smoothing=0.0, allowed_len_diff=3):
-    """
-    Compute the Focal Loss, which is designed to address class imbalance by 
-    down-weighting well-classified examples, leading to a focus on hard, 
-    misclassified examples. More weight is given to incorrect classifications.
-    
-    Parameters
-    ----------
-    inputs : torch.Tensor
-        Logits for each class; shape (N, C) where N is the batch size and 
-        C is the number of classes.
-    targets : torch.Tensor
-        Ground truth labels; shape (N,) where each value is 0 <= targets[i] <= C-1.
-    alpha : float, optional
-        The alpha weighting factor in Focal Loss formula, by default 0.25.
-    gamma : float, optional
-        The gamma focusing parameter to reduce the relative loss for well-classifed 
-        examples, leading to focus more on hard, misclassified examples, by default 2.0.
-    reduction : str, optional
-        Specifies the reduction to apply to the output: 'mean', 'sum', or 'none', 
-        by default 'mean'.
-    length : torch.Tensor, optional
-        Length of each sequence for computing true error with a mask, by default None.
-    label_smoothing : float, optional
-        The amount of label smoothing, by default 0.0.
-    allowed_len_diff : int, optional
-        Allowed length difference before truncation, by default 3.
+def focal_loss(inputs, targets, alpha=0.25, gamma=2.0, reduction='mean', **kwargs):
+"""
+Computes the Focal Loss to address class imbalance by preferentially focusing on hard, 
+misclassified examples. This is achieved by applying a modulating factor to the standard 
+cross-entropy loss, which down-weights the loss assigned to well-classified examples.
 
-    Returns
-    -------
-    torch.Tensor
-        The computed Focal Loss.
-    """
+Parameters
+----------
+inputs : torch.Tensor
+    The predicted logits for each class; shape (N, C) where N is the batch size and 
+    C is the number of classes.
+targets : torch.Tensor
+    The ground truth labels; shape (N,) where each value is in the range [0, C-1].
+alpha : float, optional
+    The alpha weighting factor in the Focal Loss formula, which balances the importance 
+    of positive/negative examples. Defaults to 0.25.
+gamma : float, optional
+    The focusing parameter that adjusts the rate at which easy examples are down-weighted. 
+    A higher gamma focuses the model more on hard, misclassified examples. Defaults to 2.0.
+reduction : str, optional
+    Specifies the method for reducing the loss to a single value. Options are 'mean' (the default), 
+    'sum', or 'none' (no reduction, returns the loss for each example in the batch).
+
+Returns
+-------
+torch.Tensor
+    The computed Focal Loss. If `reduction` is 'none', the loss is returned for each 
+    example in the batch; otherwise, a single aggregated loss value is returned.
+
+Notes
+-----
+The function also accepts arbitrary keyword arguments (`**kwargs`), which allows it to 
+gracefully ignore additional parameters not explicitly listed above. This feature ensures 
+compatibility with interfaces that might pass additional, unexpected arguments.
+"""
+
     if len(inputs.shape) == 3:
         inputs, targets = truncate(inputs, targets, allowed_len_diff)
         inputs = inputs.transpose(1, -1)
 
     def focal_loss_fn(inputs, targets):
-        ce_loss = F.cross_entropy(inputs, targets, weight=weight, reduction="none")
+        ce_loss = F.cross_entropy(inputs, targets, reduction="none")
         pt = torch.exp(-ce_loss)
         focal_loss = alpha * (1 - pt)**gamma * ce_loss
         return focal_loss
