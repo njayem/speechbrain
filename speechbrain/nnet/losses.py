@@ -476,7 +476,7 @@ def nll_loss(
     )
 
 # ADDED A NEW MODIFICATION: Focal Loss
-def focal_loss(inputs, targets, alpha=0.25, gamma=2.0, reduction='mean', length=None, label_smoothing=0.0, allowed_len_diff=3):
+def focal_loss(inputs, targets, alpha=0.25, gamma=2.0, reduction='mean', weight=None, length=None, label_smoothing=0.0, allowed_len_diff=3):
     """
     Compute the Focal Loss, which is designed to address class imbalance by 
     down-weighting well-classified examples, leading to a focus on hard, 
