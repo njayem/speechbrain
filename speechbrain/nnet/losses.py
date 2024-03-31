@@ -476,7 +476,14 @@ def nll_loss(
     )
 
 # ADDED A NEW MODIFICATION: Focal Loss
-def focal_loss(inputs, targets, alpha=0.25, gamma=2.0, reduction='mean', **kwargs):
+def focal_loss(inputs, 
+    targets, 
+    alpha=0.25, 
+    gamma=2.0, 
+    length=None, 
+    weight=None, 
+    allowed_len_diff=3,
+    label_smoothing=0.0, reduction='mean'):
 """
 Computes the Focal Loss to address class imbalance by preferentially focusing on hard, 
 misclassified examples. This is achieved by applying a modulating factor to the standard 
@@ -488,16 +495,26 @@ inputs : torch.Tensor
     The predicted logits for each class; shape (N, C) where N is the batch size and 
     C is the number of classes.
 targets : torch.Tensor
-    The ground truth labels; shape (N,) where each value is in the range [0, C-1].
+    The targets, of shape [batch] or [batch, frames].
 alpha : float, optional
     The alpha weighting factor in the Focal Loss formula, which balances the importance 
     of positive/negative examples. Defaults to 0.25.
 gamma : float, optional
     The focusing parameter that adjusts the rate at which easy examples are down-weighted. 
     A higher gamma focuses the model more on hard, misclassified examples. Defaults to 2.0.
-reduction : str, optional
-    Specifies the method for reducing the loss to a single value. Options are 'mean' (the default), 
-    'sum', or 'none' (no reduction, returns the loss for each example in the batch).
+length : torch.Tensor
+    Length of each utterance, if frame-level loss is desired.
+weight: torch.Tensor
+    A manual rescaling weight given to each class.
+    If given, has to be a Tensor of size C.
+allowed_len_diff : int
+    Length difference that will be tolerated before raising an exception.
+label_smoothing : float
+    The amount of smoothing to apply to labels (default 0.0, no smoothing)
+reduction : str
+    Options are 'mean', 'batch', 'batchmean', 'sum'.
+    See pytorch for 'mean', 'sum'. The 'batch' option returns
+    one loss per item in the batch, 'batchmean' returns sum / batch size.
 
 Returns
 -------
@@ -505,18 +522,13 @@ torch.Tensor
     The computed Focal Loss. If `reduction` is 'none', the loss is returned for each 
     example in the batch; otherwise, a single aggregated loss value is returned.
 
-Notes
------
-The function also accepts arbitrary keyword arguments (`**kwargs`), which allows it to 
-gracefully ignore additional parameters not explicitly listed above. This feature ensures 
-compatibility with interfaces that might pass additional, unexpected arguments.
 """
 
     if len(inputs.shape) == 3:
         inputs, targets = truncate(inputs, targets, allowed_len_diff)
         inputs = inputs.transpose(1, -1)
 
-    def focal_loss_fn(inputs, targets):
+    def focal_loss_fn(inputs, targets, weight=weight):
         ce_loss = F.cross_entropy(inputs, targets, reduction="none")
         pt = torch.exp(-ce_loss)
         focal_loss = alpha * (1 - pt)**gamma * ce_loss
