@@ -526,6 +526,50 @@ def nll_loss(
         reduction=reduction,
     )
 
+def focal_loss(inputs, targets, alpha=0.25, gamma=2.0, reduction='mean'):
+    """
+    Compute the Focal Loss, which is designed to address class imbalance by 
+    down-weighting well-classified examples, leading to a focus on hard, 
+    misclassified examples. More weight is given to incorrect classifications.
+    
+    Parameters
+    ----------
+    inputs : torch.Tensor
+        Logits for each class; shape (N, C) where N is the batch size and 
+        C is the number of classes.
+    targets : torch.Tensor
+        Ground truth labels; shape (N,) where each value is 0 <= targets[i] <= C-1.
+    alpha : float, optional
+        The alpha weighting factor in Focal Loss formula, by default 0.25.
+    gamma : float, optional
+        The gamma focusing parameter to reduce the relative loss for well-classifed 
+        examples, leading to focus more on hard, misclassified examples, by default 2.0.
+    reduction : str, optional
+        Specifies the reduction to apply to the output: 'mean', 'sum', or 'none', 
+        by default 'mean'.
+    
+    Returns
+    -------
+    torch.Tensor
+        The computed Focal Loss.
+        
+    Example
+    -------
+    >>> inputs = torch.randn(3, 5, requires_grad=True)
+    >>> targets = torch.tensor([1, 0, 4])
+    >>> loss = focal_loss(inputs, targets, alpha=0.25, gamma=2.0, reduction='mean')
+    """
+    ce_loss = torch.nn.functional.cross_entropy(inputs, targets, reduction="none")
+    pt = torch.exp(-ce_loss)
+    focal_loss = alpha * (1-pt)**gamma * ce_loss
+    
+    if reduction == 'mean':
+        return torch.mean(focal_loss)
+    elif reduction == 'sum':
+        return torch.sum(focal_loss)
+    else:
+        return focal_loss
+        
 
 def bce_loss(
     inputs,
