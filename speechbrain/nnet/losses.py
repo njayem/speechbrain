@@ -477,13 +477,13 @@ def nll_loss(
 
 # ADDED A NEW MODIFICATION: Focal Loss
 def focal_loss(inputs, 
-    targets, 
-    alpha=0.25, 
-    gamma=2.0, 
-    length=None, 
-    weight=None, 
-    allowed_len_diff=3,
-    label_smoothing=0.0, reduction='mean'):
+               targets, 
+               alpha=0.25, 
+               gamma=2.0, 
+               length=None, 
+               weight=None, 
+               allowed_len_diff=3,
+               label_smoothing=0.0, reduction='mean'):
     """
     Computes the Focal Loss to address class imbalance by preferentially focusing on hard, 
     misclassified examples. This is achieved by applying a modulating factor to the standard 
@@ -521,21 +521,20 @@ def focal_loss(inputs,
     torch.Tensor
         The computed Focal Loss. If `reduction` is 'none', the loss is returned for each 
         example in the batch; otherwise, a single aggregated loss value is returned.
-
     """
 
     if len(inputs.shape) == 3:
         inputs, targets = truncate(inputs, targets, allowed_len_diff)
         inputs = inputs.transpose(1, -1)
 
-    def focal_loss_fn(inputs, targets, weight=weight):
-        ce_loss = F.cross_entropy(inputs, targets, reduction="none")
+    def focal_loss_fn(inputs, targets, weight=None):
+        ce_loss = F.cross_entropy(inputs, targets, reduction="none", weight=weight)
         pt = torch.exp(-ce_loss)
         focal_loss = alpha * (1 - pt)**gamma * ce_loss
         return focal_loss
 
     # Using compute_masked_loss function
-    loss = functools.partial(focal_loss_fn)
+    loss = functools.partial(focal_loss_fn, weight=weight)
     return compute_masked_loss(
         loss,
         inputs,
