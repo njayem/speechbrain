@@ -484,45 +484,45 @@ def focal_loss(inputs,
     weight=None, 
     allowed_len_diff=3,
     label_smoothing=0.0, reduction='mean'):
-"""
-Computes the Focal Loss to address class imbalance by preferentially focusing on hard, 
-misclassified examples. This is achieved by applying a modulating factor to the standard 
-cross-entropy loss, which down-weights the loss assigned to well-classified examples.
+    """
+    Computes the Focal Loss to address class imbalance by preferentially focusing on hard, 
+    misclassified examples. This is achieved by applying a modulating factor to the standard 
+    cross-entropy loss, which down-weights the loss assigned to well-classified examples.
 
-Parameters
-----------
-inputs : torch.Tensor
-    The predicted logits for each class; shape (N, C) where N is the batch size and 
-    C is the number of classes.
-targets : torch.Tensor
-    The targets, of shape [batch] or [batch, frames].
-alpha : float, optional
-    The alpha weighting factor in the Focal Loss formula, which balances the importance 
-    of positive/negative examples. Defaults to 0.25.
-gamma : float, optional
-    The focusing parameter that adjusts the rate at which easy examples are down-weighted. 
-    A higher gamma focuses the model more on hard, misclassified examples. Defaults to 2.0.
-length : torch.Tensor
-    Length of each utterance, if frame-level loss is desired.
-weight: torch.Tensor
-    A manual rescaling weight given to each class.
-    If given, has to be a Tensor of size C.
-allowed_len_diff : int
-    Length difference that will be tolerated before raising an exception.
-label_smoothing : float
-    The amount of smoothing to apply to labels (default 0.0, no smoothing)
-reduction : str
-    Options are 'mean', 'batch', 'batchmean', 'sum'.
-    See pytorch for 'mean', 'sum'. The 'batch' option returns
-    one loss per item in the batch, 'batchmean' returns sum / batch size.
+    Parameters
+    ----------
+    inputs : torch.Tensor
+        The predicted logits for each class; shape (N, C) where N is the batch size and 
+        C is the number of classes.
+    targets : torch.Tensor
+        The targets, of shape [batch] or [batch, frames].
+    alpha : float, optional
+        The alpha weighting factor in the Focal Loss formula, which balances the importance 
+        of positive/negative examples. Defaults to 0.25.
+    gamma : float, optional
+        The focusing parameter that adjusts the rate at which easy examples are down-weighted. 
+        A higher gamma focuses the model more on hard, misclassified examples. Defaults to 2.0.
+    length : torch.Tensor
+        Length of each utterance, if frame-level loss is desired.
+    weight: torch.Tensor
+        A manual rescaling weight given to each class.
+        If given, has to be a Tensor of size C.
+    allowed_len_diff : int
+        Length difference that will be tolerated before raising an exception.
+    label_smoothing : float
+        The amount of smoothing to apply to labels (default 0.0, no smoothing)
+    reduction : str
+        Options are 'mean', 'batch', 'batchmean', 'sum'.
+        See pytorch for 'mean', 'sum'. The 'batch' option returns
+        one loss per item in the batch, 'batchmean' returns sum / batch size.
 
-Returns
--------
-torch.Tensor
-    The computed Focal Loss. If `reduction` is 'none', the loss is returned for each 
-    example in the batch; otherwise, a single aggregated loss value is returned.
+    Returns
+    -------
+    torch.Tensor
+        The computed Focal Loss. If `reduction` is 'none', the loss is returned for each 
+        example in the batch; otherwise, a single aggregated loss value is returned.
 
-"""
+    """
 
     if len(inputs.shape) == 3:
         inputs, targets = truncate(inputs, targets, allowed_len_diff)
